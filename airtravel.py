@@ -1,25 +1,37 @@
-import psycopg2
+import os
+from typing import List, Dict
 import psycopg2.extras
-from typing import List, Dict, Any
-
+import psycopg2
+from dotenv import load_dotenv
 
 class airtravelDatabase:
     def __init__(self, db_params: Dict[str, str] = None):
-        self.db_params = db_params or {
-            'host': 'localhost',
-            'database': 'airtravel',
-            'user': 'postgres',
-            'password': 'SmAlta_26_Bd',
-            'port': '5432'
-        }
+        load_dotenv()
+
+        if db_params is None:
+            self.db_params = self.get_db_params_from_dotenv()
+        else:
+            self.db_params = db_params
+
         self.connection = None
 
+    def get_db_params_from_dotenv(self) -> Dict[str, str]:
+        params = {
+            'host': os.environ.get("HOST"),
+            'database': os.environ.get("DATABASE"),
+            'user': os.environ.get("USER_NAME"),
+            'password': os.environ.get("PASSWORD"),
+            'port': os.environ.get("PORT")
+        }
+
+        return params
+
     def connect(self):
-        """Установка соединения с базой данных PostgreSQL"""
         try:
             self.connection = psycopg2.connect(**self.db_params)
             print("Успешное подключение к PostgreSQL")
             return True
+
         except psycopg2.Error as e:
             print(f"Ошибка подключения к PostgreSQL: {e}")
             return False
@@ -28,7 +40,7 @@ class airtravelDatabase:
         """Закрытие соединения с базой данных"""
         if self.connection:
             self.connection.close()
-            print("Приложение завершено")
+            print("Соединение с базой данных закрыто")
 
     def get_airports_by_coordinates(self, lat_min: float, lat_max: float,
                                     lon_min: float, lon_max: float) -> List[Dict]:
@@ -174,26 +186,16 @@ class airtravelApp:
         print("ПРИЛОЖЕНИЕ ДЛЯ РАБОТЫ С ДАННЫМИ АЭРОПОРТОВ (PostgreSQL)")
         print("=" * 50)
 
-        username, password = self._get_credentials()
+        if self.db.connect():
+            self.is_connected = True
+            print("Начинаем работу!")
+            self.main_menu()
+        else:
+            print("Не удалось подключиться")
 
-        db_params = {
-            'host': 'localhost',
-            'database': 'airtravel',
-            'user': username,
-            'password': password,
-            'port': '5432'
-        }
 
-        self.db = airtravelDatabase(db_params)
-
-        # Подключение к базе данных
-        if not self.db.connect():
-            print("Не удалось подключиться к базе данных.")
-            return
-
-        self.is_connected = True
-
-        # Главное меню
+       # Главное меню
+    def main_menu(self):
         while True:
             print("\nГЛАВНОЕ МЕНЮ:")
             print("1. Поиск аэропортов по координатам")
